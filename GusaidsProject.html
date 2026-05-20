@@ -1,0 +1,1794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaSight — Microplastic Monitoring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #04100a;
+    --bg2: #071a0f;
+    --surface: #0c2617;
+    --surface2: #0f2e1c;
+    --accent: #22e87a;
+    --accent2: #0dff8c;
+    --accent-dim: rgba(34,232,122,0.12);
+    --accent-glow: rgba(34,232,122,0.35);
+    --text: #e8f5ee;
+    --text-muted: #7aaa90;
+    --text-dim: #3d6e52;
+    --border: rgba(34,232,122,0.15);
+    --border-bright: rgba(34,232,122,0.4);
+    --red: #ff4d6d;
+    --blue: #4dc9ff;
+    --warning: #ffd166;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.6;
+  }
+
+  /* ── NAVBAR ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 20px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to bottom, rgba(4,16,10,0.95), transparent);
+    backdrop-filter: blur(8px);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .nav-logo-icon {
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .nav-logo-icon::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 120%, var(--accent-glow), transparent 70%);
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  .nav-logo-drop {
+    width: 8px; height: 12px;
+    background: var(--accent);
+    border-radius: 50% 50% 50% 50% / 30% 30% 70% 70%;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 0 12px var(--accent);
+  }
+
+  .nav-logo-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .nav-logo-text span { color: var(--accent); }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--accent); }
+
+  .nav-cta {
+    background: var(--accent);
+    color: var(--bg) !important;
+    padding: 9px 20px;
+    border-radius: 6px;
+    font-weight: 600 !important;
+    transition: all 0.2s !important;
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+
+  .nav-cta:hover {
+    background: var(--accent2) !important;
+    color: var(--bg) !important;
+    box-shadow: 0 0 32px var(--accent-glow) !important;
+    transform: translateY(-1px);
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 48px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .hero-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.18;
+    animation: float 8s ease-in-out infinite;
+  }
+
+  .hero-orb-1 {
+    width: 600px; height: 600px;
+    background: var(--accent);
+    top: -200px; left: 50%;
+    transform: translateX(-50%);
+    animation-delay: 0s;
+  }
+
+  .hero-orb-2 {
+    width: 300px; height: 300px;
+    background: var(--blue);
+    bottom: 0; right: 10%;
+    animation-delay: -3s;
+    opacity: 0.1;
+  }
+
+  /* Grid lines */
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(34,232,122,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34,232,122,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%);
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--border-bright);
+    background: var(--accent-dim);
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  .hero-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  .hero-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(42px, 7vw, 88px);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -0.04em;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.8s ease 0.1s both;
+  }
+
+  .hero-title .line-accent {
+    color: var(--accent);
+    position: relative;
+    display: inline-block;
+  }
+
+  .hero-title .line-accent::after {
+    content: '';
+    position: absolute;
+    bottom: 4px; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.4;
+    transform: scaleX(0);
+    transform-origin: left;
+    animation: lineReveal 1s ease 1s both;
+  }
+
+  .hero-subtitle {
+    max-width: 600px;
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 48px;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.8s ease 0.2s both;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.8s ease 0.3s both;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 14px 28px;
+    border-radius: 8px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 0 32px var(--accent-glow), 0 4px 16px rgba(0,0,0,0.4);
+    transition: all 0.25s;
+    letter-spacing: -0.01em;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent2);
+    transform: translateY(-2px);
+    box-shadow: 0 0 48px var(--accent-glow), 0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 14px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    transition: all 0.25s;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--border-bright);
+    color: var(--text);
+    background: var(--accent-dim);
+  }
+
+  /* scroll indicator */
+  .scroll-hint {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    animation: fadeUp 1s ease 1.2s both;
+  }
+
+  .scroll-line {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(to bottom, var(--accent), transparent);
+    animation: scrollDrop 2s ease-in-out infinite;
+  }
+
+  /* ── STATS BAND ── */
+  .stats-band {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 32px 48px;
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    background: rgba(12,38,23,0.5);
+  }
+
+  .stat-item {
+    flex: 1;
+    max-width: 220px;
+    text-align: center;
+    padding: 0 32px;
+    border-right: 1px solid var(--border);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.6s ease;
+  }
+
+  .stat-item:last-child { border-right: none; }
+  .stat-item.visible { opacity: 1; transform: none; }
+
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 40px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 4px;
+    text-shadow: 0 0 20px var(--accent-glow);
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── SECTION SHARED ── */
+  section {
+    padding: 100px 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .section-label::before {
+    content: '';
+    width: 24px; height: 1px;
+    background: var(--accent);
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .section-sub {
+    font-size: 16px;
+    color: var(--text-muted);
+    font-weight: 300;
+    max-width: 560px;
+    line-height: 1.7;
+  }
+
+  /* ── PROBLEM SECTION ── */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-top: 60px;
+    align-items: start;
+  }
+
+  .problem-visual {
+    position: sticky;
+    top: 100px;
+  }
+
+  .earth-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .earth-card::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(255,77,109,0.15), transparent 70%);
+    pointer-events: none;
+  }
+
+  .stat-visual-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 24px;
+  }
+
+  .contamination-bar {
+    margin-bottom: 16px;
+  }
+
+  .cbar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .cbar-label span:last-child { color: var(--text); font-weight: 600; }
+
+  .cbar-track {
+    height: 6px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .cbar-fill {
+    height: 100%;
+    border-radius: 99px;
+    width: 0;
+    transition: width 1.4s ease;
+  }
+
+  .cbar-fill.danger { background: linear-gradient(to right, #ff4d6d, #ff8fa3); }
+  .cbar-fill.warning { background: linear-gradient(to right, #ffd166, #ffe599); }
+  .cbar-fill.info { background: linear-gradient(to right, #4dc9ff, #a3e4ff); }
+  .cbar-fill.ok { background: linear-gradient(to right, var(--accent), var(--accent2)); }
+
+  .problem-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .prob-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    gap: 16px;
+    opacity: 0;
+    transform: translateX(20px);
+    transition: all 0.5s ease;
+  }
+
+  .prob-card.visible { opacity: 1; transform: none; }
+
+  .prob-card:hover {
+    border-color: var(--border-bright);
+    background: var(--surface2);
+  }
+
+  .prob-icon {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .prob-icon.red { background: rgba(255,77,109,0.12); }
+  .prob-icon.yellow { background: rgba(255,209,102,0.12); }
+  .prob-icon.blue { background: rgba(77,201,255,0.12); }
+  .prob-icon.green { background: var(--accent-dim); }
+
+  .prob-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .prob-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* ── HOW IT WORKS ── */
+  .how-section {
+    background: var(--bg2);
+    max-width: none;
+    padding: 100px 0;
+  }
+
+  .how-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 48px;
+  }
+
+  .how-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 64px;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+
+  .steps-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    position: relative;
+  }
+
+  .step-card {
+    background: var(--surface);
+    padding: 36px 28px;
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease;
+    cursor: default;
+  }
+
+  .step-card:first-child { border-radius: 16px 0 0 16px; }
+  .step-card:last-child { border-radius: 0 16px 16px 0; }
+
+  .step-card.visible { opacity: 1; transform: none; }
+
+  .step-card:hover {
+    background: var(--surface2);
+    z-index: 1;
+  }
+
+  .step-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(to right, var(--accent), transparent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s ease;
+  }
+
+  .step-card:hover::after { transform: scaleX(1); }
+
+  .step-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 52px;
+    font-weight: 800;
+    color: var(--text-dim);
+    line-height: 1;
+    margin-bottom: 16px;
+    letter-spacing: -0.05em;
+  }
+
+  .step-icon {
+    font-size: 28px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .step-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .step-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+
+  .step-tag {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 3px 10px;
+    border-radius: 99px;
+  }
+
+  /* ── CYCLE VISUAL ── */
+  .cycle-section {
+    padding: 100px 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .cycle-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+    margin-top: 60px;
+  }
+
+  .cycle-diagram {
+    position: relative;
+    aspect-ratio: 1;
+    max-width: 420px;
+  }
+
+  .cycle-center {
+    position: absolute;
+    inset: 25%;
+    background: var(--surface);
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+
+  .cycle-center-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-align: center;
+  }
+
+  .cycle-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px dashed rgba(34,232,122,0.2);
+    animation: rotateSlow 20s linear infinite;
+  }
+
+  .cycle-node {
+    position: absolute;
+    width: 64px; height: 64px;
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    transform: translate(-50%, -50%);
+    transition: all 0.3s;
+    cursor: default;
+    z-index: 3;
+  }
+
+  .cycle-node:hover {
+    background: var(--surface2);
+    border-color: var(--accent);
+    box-shadow: 0 0 20px var(--accent-glow);
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+
+  .cycle-node span {
+    font-size: 9px;
+    color: var(--text-dim);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+    text-transform: uppercase;
+  }
+
+  .cycle-info { }
+
+  .cycle-info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cycle-info-item:last-child { border-bottom: none; }
+
+  .ci-dot {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .ci-text strong {
+    display: block;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .ci-text p {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* ── TECH SECTION ── */
+  .tech-section {
+    background: var(--bg2);
+    max-width: none;
+    padding: 100px 0;
+  }
+
+  .tech-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 48px;
+  }
+
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 60px;
+  }
+
+  .tech-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(24px);
+    transition: all 0.6s ease;
+  }
+
+  .tech-card.visible { opacity: 1; transform: none; }
+
+  .tech-card:hover {
+    border-color: var(--border-bright);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+  }
+
+  .tech-card-glow {
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 150px; height: 150px;
+    border-radius: 50%;
+    filter: blur(40px);
+    opacity: 0.08;
+    pointer-events: none;
+  }
+
+  .tech-card-icon {
+    font-size: 32px;
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .tech-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  .tech-card-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+
+  .tech-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tech-tag {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .tech-tag.green { background: var(--accent-dim); color: var(--accent); }
+  .tech-tag.blue { background: rgba(77,201,255,0.1); color: var(--blue); }
+  .tech-tag.yellow { background: rgba(255,209,102,0.1); color: var(--warning); }
+
+  /* ── BETA SECTION ── */
+  .beta-section {
+    max-width: none;
+    background: linear-gradient(135deg, var(--bg) 0%, rgba(34,232,122,0.04) 50%, var(--bg) 100%);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 100px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .beta-section::before {
+    content: 'BETA';
+    position: absolute;
+    font-family: 'Syne', sans-serif;
+    font-size: 400px;
+    font-weight: 800;
+    color: rgba(34,232,122,0.02);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    letter-spacing: -0.05em;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .beta-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .beta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(34,232,122,0.15), rgba(34,232,122,0.05));
+    border: 1px solid var(--border-bright);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 999px;
+    margin-bottom: 28px;
+  }
+
+  .beta-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+
+  .beta-title span { color: var(--accent); }
+
+  .beta-desc {
+    font-size: 17px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 40px;
+    font-weight: 300;
+  }
+
+  .beta-features {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+  }
+
+  .beta-feat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .beta-feat::before {
+    content: '✓';
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .beta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 16px 36px;
+    border-radius: 10px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 0 40px var(--accent-glow), 0 8px 24px rgba(0,0,0,0.4);
+    transition: all 0.25s;
+    letter-spacing: -0.01em;
+  }
+
+  .beta-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 60px var(--accent-glow), 0 12px 32px rgba(0,0,0,0.5);
+    background: var(--accent2);
+  }
+
+  .beta-btn svg { transition: transform 0.2s; }
+  .beta-btn:hover svg { transform: translateX(4px); }
+
+  /* ── TEAM SECTION ── */
+  .team-section {
+    padding: 100px 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-top: 60px;
+  }
+
+  .team-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 20px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .team-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(to right, transparent, var(--accent), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .team-card:hover::before { opacity: 1; }
+
+  .team-card.visible { opacity: 1; transform: none; }
+
+  .team-card:hover {
+    border-color: var(--border-bright);
+    transform: translateY(-4px);
+  }
+
+  .team-avatar {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--surface2), var(--accent-dim));
+    border: 1.5px solid var(--border);
+    margin: 0 auto 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    box-shadow: 0 0 16px var(--accent-glow);
+  }
+
+  .team-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+
+  .team-role {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: none;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+
+  .footer-brand {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .footer-brand span { color: var(--accent); }
+
+  .footer-info {
+    font-size: 13px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
+  .footer-hackathon {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  .footer-hackathon strong { color: var(--text-muted); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-24px); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  @keyframes scrollDrop {
+    0% { opacity: 1; transform: scaleY(1); transform-origin: top; }
+    50% { opacity: 0.5; }
+    100% { opacity: 0; transform: scaleY(0.3); transform-origin: bottom; }
+  }
+
+  @keyframes lineReveal {
+    to { transform: scaleX(1); }
+  }
+
+  @keyframes rotateSlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes counterUp {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 960px) {
+    nav { padding: 16px 24px; }
+    .nav-links { display: none; }
+    section { padding: 64px 24px; }
+    .hero { padding: 120px 24px 64px; }
+    .problem-grid { grid-template-columns: 1fr; }
+    .problem-visual { position: static; }
+    .steps-container { grid-template-columns: repeat(2, 1fr); }
+    .step-card:first-child { border-radius: 16px 0 0 0; }
+    .step-card:last-child { border-radius: 0 0 16px 0; }
+    .tech-grid { grid-template-columns: 1fr; }
+    .team-grid { grid-template-columns: repeat(2, 1fr); }
+    .cycle-grid { grid-template-columns: 1fr; }
+    .stats-band { flex-wrap: wrap; padding: 24px; }
+    .stat-item { border-right: none; border-bottom: 1px solid var(--border); padding: 16px 24px; max-width: none; }
+    .stat-item:last-child { border-bottom: none; }
+    footer { padding: 32px 24px; }
+    .beta-section { padding: 64px 24px; }
+    .how-inner, .tech-inner { padding: 0 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-icon">
+      <div class="nav-logo-drop"></div>
+    </div>
+    <span class="nav-logo-text">Eco<span>Tech</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#problem">Problem</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#tech">Technologies</a></li>
+    <li><a href="#team">Team</a></li>
+    <li><a href="#beta" class="nav-cta">Try beta</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-bg">
+    <div class="hero-grid"></div>
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+  </div>
+
+  <div class="hero-badge">
+    <span></span>
+    Ecology &amp; Sustainability · SynergyX Hackathon
+  </div>
+
+  <h1 class="hero-title">
+    Microplastic<br>
+    <span class="line-accent">Monitoring</span><br>
+    in real time
+  </h1>
+
+  <p class="hero-subtitle">
+    An autonomous system that samples water every 2 weeks, filters it, and analyzes it with computer vision — without human involvement.
+  </p>
+
+  <div class="hero-actions">
+    <a href="#beta" class="btn-primary">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Open beta version
+    </a>
+    <a href="#how" class="btn-secondary">
+      How it works
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M7 2v10M2 7l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </div>
+
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    Scroll
+  </div>
+</div>
+
+<!-- STATS BAND -->
+<div class="stats-band" id="stats">
+  <div class="stat-item" style="transition-delay:0s">
+    <div class="stat-num" data-target="5">0</div>
+    <div class="stat-label">mm — max microplastic size</div>
+  </div>
+  <div class="stat-item" style="transition-delay:0.1s">
+    <div class="stat-num" data-target="83">0</div>
+    <div class="stat-label">% of taps polluted worldwide</div>
+  </div>
+  <div class="stat-item" style="transition-delay:0.2s">
+    <div class="stat-num" data-target="14" data-suffix="d">0</div>
+    <div class="stat-label">autonomous data collection cycle</div>
+  </div>
+  <div class="stat-item" style="transition-delay:0.3s">
+    <div class="stat-num" data-target="6">0</div>
+    <div class="stat-label">core monitoring issues</div>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<section id="problem">
+  <div class="section-label">Problem</div>
+  <h2 class="section-title">Why it matters<br>right now</h2>
+  <p class="section-sub">Microplastics are already found in human blood, breast milk and in the air. Yet systematic groundwater monitoring is almost non-existent.</p>
+
+  <div class="problem-grid">
+    <div class="problem-visual">
+      <div class="earth-card">
+        <div class="stat-visual-title">Pollution levels by source</div>
+        <div class="contamination-bar">
+          <div class="cbar-label"><span>Wastewater</span><span>92%</span></div>
+          <div class="cbar-track"><div class="cbar-fill danger" data-w="92"></div></div>
+        </div>
+        <div class="contamination-bar">
+          <div class="cbar-label"><span>Landfills</span><span>78%</span></div>
+          <div class="cbar-track"><div class="cbar-fill danger" data-w="78"></div></div>
+        </div>
+        <div class="contamination-bar">
+          <div class="cbar-label"><span>Agricultural films</span><span>65%</span></div>
+          <div class="cbar-track"><div class="cbar-fill warning" data-w="65"></div></div>
+        </div>
+        <div class="contamination-bar">
+          <div class="cbar-label"><span>Textile microfibers</span><span>54%</span></div>
+          <div class="cbar-track"><div class="cbar-fill info" data-w="54"></div></div>
+        </div>
+        <div class="contamination-bar">
+          <div class="cbar-label"><span>Atmospheric deposition</span><span>41%</span></div>
+          <div class="cbar-track"><div class="cbar-fill ok" data-w="41"></div></div>
+        </div>
+
+        <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px">Monitoring coverage now</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="flex:1;height:8px;background:var(--accent);border-radius:4px;width:8%"></div>
+            <div style="flex:11;height:8px;background:rgba(255,77,109,0.2);border-radius:4px"></div>
+            <span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--red)">8% of regions</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:8px">92% of areas have no constant monitoring</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="problem-cards">
+      <div class="prob-card">
+        <div class="prob-icon red">🔬</div>
+        <div>
+          <div class="prob-title">Expensive analysis methods</div>
+          <div class="prob-desc">Existing technologies (FTIR, Raman spectroscopy) require expensive lab equipment and specialists. One sample can take weeks.</div>
+        </div>
+      </div>
+      <div class="prob-card">
+        <div class="prob-icon yellow">📍</div>
+        <div>
+          <div class="prob-title">No field tools</div>
+          <div class="prob-desc">Volunteers and ecologists lack affordable portable devices for on-site water analysis. Everything is sent to a lab.</div>
+        </div>
+      </div>
+      <div class="prob-card">
+        <div class="prob-icon blue">🗺️</div>
+        <div>
+          <div class="prob-title">Source tracing is hard</div>
+          <div class="prob-desc">Even when microplastic is detected, it is hard to know the source: landfill, factory, or road? Without data, there is no response.</div>
+        </div>
+      </div>
+      <div class="prob-card">
+        <div class="prob-icon green">📊</div>
+        <div>
+          <div class="prob-title">No open data</div>
+          <div class="prob-desc">The public does not know the real condition of local water. The issue stays “invisible” until an ecological disaster.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<div class="how-section" id="how">
+  <div class="how-inner">
+    <div class="how-header">
+      <div>
+        <div class="section-label">How it works</div>
+        <h2 class="section-title">Automatic cycle<br>every 2 weeks</h2>
+      </div>
+      <p style="max-width:300px;font-size:14px;color:var(--text-muted);line-height:1.7">
+        The system works without human involvement. Data accumulates and is sent to the platform for trend analysis.
+      </p>
+    </div>
+
+    <div class="steps-container">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <span class="step-icon">🚿</span>
+        <div class="step-title">Water intake</div>
+        <div class="step-desc">A peristaltic pump draws exactly 1 liter of water from the source. Fixed volume is critical for comparable measurements (C = N/V).</div>
+        <span class="step-tag">Intake System</span>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <span class="step-icon">🔩</span>
+        <div class="step-title">Filtration</div>
+        <div class="step-desc">Water passes through a 5–20 µm fiberglass microfilter. A coarse 300–500 µm pre-filter removes leaves and sand.</div>
+        <span class="step-tag">Filtration Module</span>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <span class="step-icon">📷</span>
+        <div class="step-title">Macro imaging</div>
+        <div class="step-desc">A USB microscope photographs the filter under ring LED illumination. Controlled lighting is key to AI analysis quality.</div>
+        <span class="step-tag">Imaging Module</span>
+      </div>
+      <div class="step-card">
+        <div class="step-num">04</div>
+        <span class="step-icon">🤖</span>
+        <div class="step-title">AI analysis</div>
+        <div class="step-desc">A Raspberry Pi algorithm counts particles, classifies them by shape (fibers, fragments), and sends the data to the cloud.</div>
+        <span class="step-tag">Computer Vision</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CYCLE VISUAL -->
+<section class="cycle-section">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center">
+    <div>
+      <div class="section-label">Architecture</div>
+      <h2 class="section-title">Full cycle<br>in 10 minutes</h2>
+      <p class="section-sub" style="margin-bottom:32px">The system sleeps most of the time. Every 14 days it activates, takes a measurement, and returns to sleep mode to save energy.</p>
+
+      <div>
+        <div class="cycle-info-item">
+          <div class="ci-dot"></div>
+          <div class="ci-text">
+            <strong>Contamination Control</strong>
+            <p>Inside — metal, glass, and PTFE tubing. The system self-tests with ultra-pure water (blank tests) to account for background contamination.</p>
+          </div>
+        </div>
+        <div class="cycle-info-item">
+          <div class="ci-dot"></div>
+          <div class="ci-text">
+            <strong>Clear limitations</strong>
+            <p>The system does not replace FTIR spectroscopy. The result is “probable microplastic” for long-term trend tracking, not chemical analysis.</p>
+          </div>
+        </div>
+        <div class="cycle-info-item">
+          <div class="ci-dot"></div>
+          <div class="ci-text">
+            <strong>Energy autonomy</strong>
+            <p>Solar panel + battery. 10 minutes of operation every 2 weeks equals months of autonomous operation without maintenance.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:center;aspect-ratio:1;max-width:420px;margin:0 auto">
+      <div style="font-size:120px;line-height:1;text-align:center;filter:drop-shadow(0 8px 24px rgba(13,255,140,0.06))">🔬</div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH -->
+<div class="tech-section" id="tech">
+  <div class="tech-inner">
+    <div class="section-label">Technologies</div>
+    <h2 class="section-title">Solution stack</h2>
+    <p class="section-sub">Components are selected with a balance between accuracy, cost and system autonomy.</p>
+
+    <div class="tech-grid">
+      <div class="tech-card" style="transition-delay:0s">
+        <div class="tech-card-glow" style="background:var(--accent)"></div>
+        <span class="tech-card-icon">🔬</span>
+        <div class="tech-card-title">Imaging & Optics</div>
+        <div class="tech-card-desc">USB microscope or Raspberry Pi Camera module with macro lens. Ring LED illumination for even lighting. Optional UV + Nile Red for fluorescence detection.</div>
+        <div class="tech-tags">
+          <span class="tech-tag green">USB Microscope</span>
+          <span class="tech-tag green">Ring LED</span>
+          <span class="tech-tag blue">UV Fluorescence</span>
+        </div>
+      </div>
+
+      <div class="tech-card" style="transition-delay:0.1s">
+        <div class="tech-card-glow" style="background:var(--blue)"></div>
+        <span class="tech-card-icon">🧠</span>
+        <div class="tech-card-title">Computer Vision</div>
+        <div class="tech-card-desc">Pipeline: grayscale → contrast enhancement → thresholding → feature extraction (shape, size, texture) → ML classification. Models: Random Forest for MVP, CNN (U-Net) for advanced version.</div>
+        <div class="tech-tags">
+          <span class="tech-tag blue">OpenCV</span>
+          <span class="tech-tag blue">Random Forest</span>
+          <span class="tech-tag yellow">U-Net CNN</span>
+        </div>
+      </div>
+
+      <div class="tech-card" style="transition-delay:0.2s">
+        <div class="tech-card-glow" style="background:var(--warning)"></div>
+        <span class="tech-card-icon">⚙️</span>
+        <div class="tech-card-title">Hardware & Control</div>
+        <div class="tech-card-desc">A Raspberry Pi controls the whole system: pump, lighting, camera and AI. Data is sent via LTE/LoRa or stored on an SD card. Power is solar panel + LiPo battery.</div>
+        <div class="tech-tags">
+          <span class="tech-tag yellow">Raspberry Pi</span>
+          <span class="tech-tag yellow">Peristaltic Pump</span>
+          <span class="tech-tag green">Solar Power</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data metrics -->
+    <div style="margin-top:40px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;text-align:center">
+      <div>
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Metric 1</div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--accent)">particles/L</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Particle concentration</div>
+      </div>
+      <div style="border-left:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Metric 2</div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--blue)">Size dist.</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">10–500 μm range</div>
+      </div>
+      <div style="border-left:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Metric 3</div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--warning)">Morphology</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Fibers / fragments / films</div>
+      </div>
+      <div style="border-left:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Metric 4</div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--accent)">Trends</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Temporal patterns</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BETA CTA -->
+<div class="beta-section" id="beta">
+  <div class="beta-inner">
+    <div class="beta-badge">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+        <circle cx="6" cy="6" r="3"/>
+      </svg>
+      Beta version available
+    </div>
+
+    <h2 class="beta-title">
+      Try<br><span>AquaSight</span> now
+    </h2>
+
+    <p class="beta-desc">
+      Upload a filter photo and receive automatic particle analysis. See how our AI microplastic detection algorithm works.
+    </p>
+
+    <div class="beta-features">
+      <div class="beta-feat">Filter image upload</div>
+      <div class="beta-feat">AI particle count</div>
+      <div class="beta-feat">Shape classification</div>
+      <div class="beta-feat">Data export</div>
+    </div>
+
+    <a href="beta.html" class="beta-btn" id="betaBtn">
+      Open beta version
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M4 9h10M10 5l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+
+    <div style="margin-top:24px;font-size:12px;color:var(--text-dim)">
+      SynergyX Hackathon · Ecology &amp; Sustainability Track
+    </div>
+  </div>
+</div>
+
+<!-- TEAM -->
+<section class="team-section" id="team">
+  <div class="section-label">Team</div>
+  <h2 class="section-title">People behind AquaSight</h2>
+  <p class="section-sub">Five developers united by one goal — make water monitoring accessible.</p>
+
+  <div class="team-grid">
+    <div class="team-card" style="transition-delay:0s">
+      <div class="team-avatar">MR</div>
+      <div class="team-name">Maidanbek Rassul</div>
+      <div class="team-role">Team Lead · Hardware</div>
+    </div>
+    <div class="team-card" style="transition-delay:0.08s">
+      <div class="team-avatar">TA</div>
+      <div class="team-name">Toleukhanov Alisher</div>
+      <div class="team-role">ML Engineer</div>
+    </div>
+    <div class="team-card" style="transition-delay:0.16s">
+      <div class="team-avatar">OD</div>
+      <div class="team-name">Oralkhan Dinmukhamed</div>
+      <div class="team-role">Computer Vision</div>
+    </div>
+    <div class="team-card" style="transition-delay:0.24s">
+      <div class="team-avatar">SK</div>
+      <div class="team-name">Saparov Khamza</div>
+      <div class="team-role">Backend · Data</div>
+    </div>
+    <div class="team-card" style="transition-delay:0.32s">
+      <div class="team-avatar">AT</div>
+      <div class="team-name">Abdualiev Timur</div>
+      <div class="team-role">Frontend · Design</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">Eco<span>Tech</span></div>
+  <div class="footer-info">
+    Low-cost autonomous microplastic monitoring<br>
+    <span style="color:var(--accent)">AI-assisted probable microplastic detection</span>
+  </div>
+  <div class="footer-hackathon">
+    <strong>SynergyX Hackathon 2025</strong><br>
+    Ecology &amp; Sustainability Track<br>
+    Astana · NIS IB · May 24
+  </div>
+</footer>
+
+<script>
+  // ── Intersection Observer for all animated elements ──
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        // Animate bars
+        e.target.querySelectorAll('.cbar-fill[data-w]').forEach(bar => {
+          bar.style.width = bar.dataset.w + '%';
+        });
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.stat-item, .prob-card, .step-card, .tech-card, .team-card').forEach(el => io.observe(el));
+
+  // Observe earth card for bars
+  const earthCard = document.querySelector('.earth-card');
+  if (earthCard) io.observe(earthCard);
+
+  // ── Counter animation ──
+  const counterObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const num = e.target.querySelector('[data-target]');
+        if (!num) return;
+        const target = parseInt(num.dataset.target);
+        const suffix = num.dataset.suffix || '';
+        let start = 0;
+        const duration = 1600;
+        const step = target / (duration / 16);
+        const timer = setInterval(() => {
+          start = Math.min(start + step, target);
+          num.textContent = Math.floor(start) + suffix;
+          if (start >= target) clearInterval(timer);
+        }, 16);
+        counterObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.5 });
+
+  document.querySelectorAll('.stat-item').forEach(el => counterObserver.observe(el));
+
+  // ── Beta button — open inline app ──
+  document.getElementById('betaBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    openBeta();
+  });
+
+  function openBeta() {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position:fixed;inset:0;background:rgba(4,16,10,0.97);z-index:9998;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:48px 24px;backdrop-filter:blur(12px);
+      animation:fadeUp 0.3s ease both;
+    `;
+
+    overlay.innerHTML = `
+      <div style="width:100%;max-width:680px;background:var(--surface);border:1px solid var(--border-bright);border-radius:20px;overflow:hidden;box-shadow:0 0 80px var(--accent-glow);max-height:80vh;">
+        <div style="padding:24px 28px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:blink 2s infinite"></div>
+            <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--text)">AquaSight Beta — Filter analysis</span>
+          </div>
+          <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:22px;line-height:1;padding:4px 8px;border-radius:6px;transition:all 0.2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">&times;</button>
+        </div>
+
+        <div style="padding:32px 28px;overflow:auto;max-height:calc(80vh - 120px)">
+          <!-- Upload zone -->
+          <div id="uploadZone" style="border:1.5px dashed var(--border-bright);border-radius:12px;padding:48px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:16px"
+            onmouseover="this.style.borderColor='var(--accent)';this.style.background='var(--accent-dim)'"
+            onmouseout="this.style.borderColor='var(--border-bright)';this.style.background='transparent'"
+            onclick="document.getElementById('fileInput').click()">
+            <div style="font-size:40px;margin-bottom:12px">🔬</div>
+            <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Upload a filter photo</div>
+            <div style="font-size:13px;color:var(--text-muted)">PNG, JPG · or drag it here</div>
+            <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFileSelect(this)">
+          </div>
+          <div id="errorMessage" style="display:none;color:#ff4d6d;font-size:13px;margin-bottom:16px;font-family:'Syne',sans-serif;line-height:1.4">
+            Please upload a water photo before analyzing.
+          </div>
+          <button onclick="handleAnalyze()" style="width:100%;padding:12px;background:var(--accent);border:1px solid var(--accent);border-radius:8px;color:var(--bg);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer;letter-spacing:0.04em;transition:all 0.2s;margin-bottom:16px"
+            onmouseover="this.style.background='var(--accent2)'"
+            onmouseout="this.style.background='var(--accent)'">
+            Analyze uploaded photo
+          </button>
+
+
+          <!-- Results area -->
+          <div id="results" style="display:none">
+            <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px">Analysis results</div>
+            <div id="resultsContent"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  }
+
+  function handleFileSelect(input) {
+    const error = document.getElementById('errorMessage');
+    if (error) error.style.display = 'none';
+    analyzeImage(input);
+  }
+
+  function handleAnalyze() {
+    const input = document.getElementById('fileInput');
+    const error = document.getElementById('errorMessage');
+    if (!input || !input.files || !input.files[0]) {
+      if (error) {
+        error.style.display = 'block';
+        error.textContent = 'Please upload a water photo before analyzing.';
+      }
+      return;
+    }
+    if (error) error.style.display = 'none';
+    analyzeImage(input);
+  }
+
+  function analyzeImage(input) {
+    if (!input.files[0]) {
+      const error = document.getElementById('errorMessage');
+      if (error) {
+        error.style.display = 'block';
+        error.textContent = 'Please upload a water photo before analyzing.';
+      }
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = e.target.result;
+      simulateAnalysis(img);
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+
+  function simulateAnalysis(imgSrc, isDemo = false) {
+    const results = document.getElementById('results');
+    const content = document.getElementById('resultsContent');
+    results.style.display = 'block';
+
+    content.innerHTML = `<div style="text-align:center;padding:32px;color:var(--accent)">
+      <div style="font-size:32px;margin-bottom:8px;animation:pulse 1s infinite">⚙️</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:600">Analyzing image...</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px">threshold → edge detection → classification</div>
+    </div>`;
+
+    setTimeout(() => {
+      // stronger randomness to avoid predictable outputs
+      const particles = Math.floor(Math.random() * 720 + 30); // 30..749
+      // random proportional split for morphology
+      const r1 = Math.random();
+      const r2 = Math.random();
+      const r3 = Math.random();
+      const s = r1 + r2 + r3;
+      const fibers = Math.max(1, Math.round(particles * (r1 / s)));
+      const fragments = Math.max(1, Math.round(particles * (r2 / s)));
+      let films = particles - fibers - fragments;
+      if (films < 1) { films = 1; }
+      const conc = (particles / 1).toFixed(0);
+
+      content.innerHTML = `
+        ${imgSrc ? `<img src="${imgSrc}" style="width:100%;max-height:240px;object-fit:contain;border-radius:8px;margin-bottom:12px;border:1px solid var(--border)">` : ''}
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center">
+            <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--accent)">${particles}</div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Particles found</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center">
+            <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--blue)">${conc}</div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">particles/L</div>
+          </div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;font-weight:600">Particle morphology</div>
+          ${morphBar('Fibers', fibers, particles, '#4dc9ff')}
+          ${morphBar('Fragments', fragments, particles, '#ffd166')}
+          ${morphBar('Films', films, particles, 'var(--accent)')}
+        </div>
+        <div style="background:rgba(34,232,122,0.06);border:1px solid var(--border);border-radius:10px;padding:16px;font-size:12px;color:var(--text-muted);line-height:1.7">
+          ⚠️ <strong style="color:var(--text)">Note:</strong> The system detects “probable microplastic” based on morphology. Exact chemical analysis requires FTIR spectroscopy.
+        </div>
+      `;
+      // ensure the results area is visible and scrolled into view
+      const overlayModal = results.closest('div');
+      if (overlayModal) overlayModal.scrollTop = 0;
+    }, 1800);
+  }
+
+  function morphBar(label, count, total, color) {
+    const pct = Math.round(count / total * 100);
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:4px">
+        <span>${label}</span><span style="color:var(--text);font-weight:600">${count} (${pct}%)</span>
+      </div>
+      <div style="height:5px;background:rgba(255,255,255,0.05);border-radius:99px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;transition:width 1s ease"></div>
+      </div>
+    </div>`;
+  }
+
+  // Smooth scroll
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      if (a.id === 'betaBtn') return;
+      e.preventDefault();
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+</script>
+</body>
+</html>
